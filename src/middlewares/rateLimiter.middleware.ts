@@ -6,6 +6,11 @@ import { redisClient } from '../config/redis';
  */
 export const createRateLimiter = (endpointName: string, maxAttempts: number, windowInSeconds: number) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    // In development mode, bypass rate limit for seamless developer experience
+    if (process.env.NODE_ENV === 'development') {
+      return next();
+    }
+    
     // Try multiple ways to get the real IP if behind proxies
     let ip = req.ip || req.socket.remoteAddress || 'unknown';
     

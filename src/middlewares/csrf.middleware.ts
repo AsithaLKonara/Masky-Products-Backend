@@ -15,10 +15,10 @@ const CSRF_HEADER_NAME = 'x-csrf-token';
 // Safe methods that do not modify state
 const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
 
-// Routes that expect external POSTs without CSRF tokens (e.g. webhooks)
 const excludedRoutes = [
   '/api/v1/payments/webhook',
-  '/api/v1/inventory/shipping/webhook'
+  '/api/v1/inventory/shipping/webhook',
+  ...(process.env.NODE_ENV !== 'production' ? ['/api/v1/auth/login'] : [])
 ];
 
 export const csrfMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -29,6 +29,12 @@ export const csrfMiddleware = (req: Request, res: Response, next: NextFunction) 
 
   // 1. Ensure a CSRF cookie exists for this session
   let csrfCookie = req.cookies[CSRF_COOKIE_NAME];
+  const headerToken = req.headers[CSRF_HEADER_NAME] as string | undefined;
+
+  // In local development, cross-origin port requests (localhost:3000 to localhost:5000) may lack cookie
+  if (process.env.NODE_ENV !== 'production' && !csrfCookie && headerToken) {
+    csrfCookie = headerToken;
+  }
   
   if (!csrfCookie) {
     csrfCookie = crypto.randomBytes(32).toString('hex');
@@ -38,7 +44,7 @@ export const csrfMiddleware = (req: Request, res: Response, next: NextFunction) 
     res.cookie(CSRF_COOKIE_NAME, csrfCookie, {
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });
   }
@@ -52,8 +58,6 @@ export const csrfMiddleware = (req: Request, res: Response, next: NextFunction) 
   }
 
   // 4. Validate state-changing methods
-  const headerToken = req.headers[CSRF_HEADER_NAME];
-
   if (!headerToken || headerToken !== csrfCookie) {
     return res.status(403).json({
       success: false,
