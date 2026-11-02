@@ -13,3 +13,13 @@ export const getBusinessOverview = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch analytics overview' });
   }
 };
+
+export const getPublicStats = async (_req: Request, res: Response) => {
+  try {
+    const stats = await analyticsService.getPublicStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching public stats:', error);
+    res.status(500).json({ error: 'Failed to fetch public stats' });
+  }
+};
