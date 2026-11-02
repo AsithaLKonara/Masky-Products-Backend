@@ -4,6 +4,17 @@ import { authenticateJWT, requirePermission } from '../middlewares/auth.middlewa
 
 const router = Router();
 
+// Guard POS endpoints if feature is disabled
+router.use((req, res, next) => {
+  if (process.env.ENABLE_POS !== "true") {
+    return res.status(403).json({
+      success: false,
+      message: "POS feature is currently disabled in system configuration",
+    });
+  }
+  next();
+});
+
 // Sessions
 router.post('/sessions/open', authenticateJWT, requirePermission("pos:shift_open_close"), posController.openSession);
 router.post('/sessions/close', authenticateJWT, requirePermission("pos:shift_open_close"), posController.closeSession);
