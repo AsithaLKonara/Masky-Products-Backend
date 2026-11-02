@@ -43,6 +43,7 @@ import notificationRoutes from "./routes/notification.routes";
 import loyaltyRoutes from "./routes/loyalty.routes";
 import auditRoutes from "./routes/audit.routes";
 import feedRoutes from "./routes/feed.routes";
+import channelRoutes from "./routes/channel.routes";
 import { RoleService } from "./services/role.service";
 import { SettingService } from "./services/setting.service";
 import { createRequire } from 'module';
@@ -162,6 +163,7 @@ app.use(`${API_PREFIX}/otp`, otpRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/audit`, auditRoutes);
 app.use(`${API_PREFIX}/feed`, feedRoutes);
+app.use(`${API_PREFIX}/channels`, channelRoutes);
 
 // Health Check
 app.get("/health", (req: Request, res: Response) => {
