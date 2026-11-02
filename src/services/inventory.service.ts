@@ -1,7 +1,7 @@
-import { Prisma } from '@prisma/client';
 import prisma from '../config/prisma';
 import { signImageUrl } from './product.service';
 import { NotificationService } from './notification.service';
+import { socketService } from './socket.service';
 
 export const inventoryService = {
 
@@ -252,6 +252,20 @@ export const inventoryService = {
       } catch (e) {
         console.error('Failed to trigger low stock notification:', e);
       }
+    }
+
+    // Real-Time WebSocket Stock Synchronization
+    try {
+      const stockStatus = totalQuantity <= 0 ? 'outofstock' : totalQuantity <= (inv?.lowStockThreshold || 10) ? 'lowstock' : 'instock';
+      socketService.broadcastStockUpdate({
+        variantId,
+        quantity: totalQuantity,
+        stockStatus,
+        branchId,
+        reason: reason || (type === 'DEDUCT' ? 'Stock Deduction' : 'Stock Replenishment'),
+      });
+    } catch (wsErr) {
+      console.error('Failed to broadcast real-time stock update via WebSocket:', wsErr);
     }
 
     return { inventoryItem: inv, transaction };

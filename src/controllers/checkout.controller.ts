@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { checkoutService } from '../services/checkout.service';
 import { velocityService } from '../services/velocity.service';
+import prisma from '../config/prisma';
 import fs from 'fs';
 
 const getIdentifier = (req: Request) => {
@@ -124,5 +125,56 @@ export const initiateCheckout = async (req: Request, res: Response) => {
       console.error("Failed to write to checkout-error.log:", fsError);
     }
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyStock = async (req: Request, res: Response) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ status: "error", error: "items array is required" });
+    }
+
+    const onlineBranch = await prisma.branch.findFirst({
+      where: { OR: [{ name: "Online" }, { code: "ONLINE" }, { isActive: true }] },
+    });
+
+    const outOfStockItems: Array<{ variantId: string; available: number; requested: number; name?: string }> = [];
+
+    for (const item of items) {
+      const inv = await prisma.inventoryItem.findUnique({
+        where: {
+          variantId_branchId: {
+            variantId: item.variantId,
+            branchId: onlineBranch?.id || "",
+          },
+        },
+        include: {
+          variant: { include: { product: true } },
+        },
+      });
+
+      const available = inv ? inv.quantity : 0;
+      if (available < (item.quantity || 1)) {
+        outOfStockItems.push({
+          variantId: item.variantId,
+          available,
+          requested: item.quantity || 1,
+          name: inv?.variant?.product?.name || item.variantId,
+        });
+      }
+    }
+
+    const isValid = outOfStockItems.length === 0;
+
+    return res.status(200).json({
+      status: "success",
+      data: {
+        valid: isValid,
+        outOfStockItems,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({ status: "error", error: error.message });
   }
 };

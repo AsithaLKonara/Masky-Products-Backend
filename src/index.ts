@@ -178,17 +178,17 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Global Error Handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
+import http from "http";
+import { socketService } from "./services/socket.service";
 
-app.listen(PORT as number, '0.0.0.0', async () => {
-  logger.info(`Server is running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`);
-  // try {
-  //   await RoleService.seedDefaultRolesAndPermissions();
-  //   await SettingService.seedDefaultSettings();
-  //   logger.info("Default roles & permissions verified/seeded successfully.");
-  // } catch (err) {
-  //   logger.error("Failed to seed default roles and permissions on startup", err);
-  // }
+const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
+
+// Initialize real-time WebSocket infrastructure
+socketService.init(server);
+
+server.listen(PORT as number, '0.0.0.0', async () => {
+  logger.info(`Server with WebSockets is running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`);
 
   // Register background cron jobs
   registerScheduledJobs();

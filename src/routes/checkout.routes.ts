@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { calculateCheckout, initiateCheckout } from '../controllers/checkout.controller';
+import { calculateCheckout, initiateCheckout, verifyStock } from '../controllers/checkout.controller';
 import { checkoutRateLimiter } from '../middlewares/rateLimiter.middleware';
 import { checkHoneypot } from '../middlewares/honeypot.middleware';
 import { verifyTurnstile } from '../middlewares/turnstile.middleware';
@@ -7,6 +7,7 @@ import prisma from '../config/prisma';
 
 const router = Router();
 
+router.post('/verify-stock', checkoutRateLimiter, verifyStock);
 router.post('/calculate', checkHoneypot, checkoutRateLimiter, calculateCheckout);
 router.post('/initiate', checkHoneypot, verifyTurnstile, checkoutRateLimiter, initiateCheckout);
 router.get('/loyalty/:phone', checkoutRateLimiter, async (req, res) => {

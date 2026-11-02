@@ -1,5 +1,7 @@
 import prisma from "../config/prisma";
 import { logger } from "../utils/logger";
+import { socketService } from "./socket.service";
+import { inventoryService } from "./inventory.service";
 
 export interface ChannelConfig {
   id: string; // 'daraz' | 'ebay' | 'amazon' | 'web_store'
@@ -408,7 +410,7 @@ export const multiChannelService = {
       const total = price + shippingFee;
 
       // Ingest into Masky Order table
-      await prisma.order.create({
+      const createdOrder = await prisma.order.create({
         data: {
           orderNumber,
           type: channel.type,
@@ -436,6 +438,26 @@ export const multiChannelService = {
           },
         },
       });
+
+      // Deduct inventory to reflect marketplace sale and trigger real-time WebSocket sync
+      const onlineBranch = await prisma.branch.findFirst({ where: { isActive: true } });
+      if (onlineBranch) {
+        try {
+          await inventoryService.adjustStock({
+            variantId: firstVariant.id,
+            branchId: onlineBranch.id,
+            type: "DEDUCT",
+            quantity: 1,
+            reason: `${channel.name} Marketplace Order Ingestion`,
+            reference: orderNumber,
+          });
+        } catch (stockErr: any) {
+          logger.warn(`Could not deduct stock for ${channel.name} order ${orderNumber}: ${stockErr.message}`);
+        }
+      }
+
+      // Broadcast order ingestion to admin channels
+      socketService.broadcastOrderIngested(orderNumber, channel.type, total);
 
       logger.info(`Multi-channel order ${orderNumber} successfully ingested from ${channel.name}`);
     } catch (err: any) {
@@ -516,6 +538,20 @@ export const multiChannelService = {
         description: "Multi-channel synchronization activity audit log",
       },
     });
+
+    // Real-Time WebSocket Channel Sync Broadcast
+    try {
+      socketService.broadcastChannelSync({
+        channelId: entry.channelId,
+        channelName: entry.channelName,
+        action: entry.action,
+        status: entry.status,
+        message: entry.message,
+        itemsProcessed: entry.itemsProcessed,
+      });
+    } catch (wsErr) {
+      logger.warn(`Failed to broadcast channel sync log via WebSocket: ${wsErr}`);
+    }
   },
 
   // 7. Aggregate Dashboard Stats for Control Center Header
