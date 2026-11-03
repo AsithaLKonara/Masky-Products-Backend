@@ -1,7 +1,114 @@
 import prisma from '../config/prisma';
 import { Prisma } from '@prisma/client';
 
+export interface HeroConfig {
+  mode: 'slider' | 'video' | 'photo';
+  videoConfig?: {
+    videoUrl?: string;
+    posterUrl?: string;
+    eyebrow?: string;
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    ctaText?: string;
+    ctaLink?: string;
+    ctaSecondaryText?: string;
+    ctaSecondaryLink?: string;
+  };
+  photoConfig?: {
+    imageUrl?: string;
+    eyebrow?: string;
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    badgeText?: string;
+    badgeSubtext?: string;
+    ctaText?: string;
+    ctaLink?: string;
+    ctaSecondaryText?: string;
+    ctaSecondaryLink?: string;
+  };
+}
+
+export const DEFAULT_HERO_CONFIG: HeroConfig = {
+  mode: 'slider',
+  videoConfig: {
+    videoUrl: '',
+    posterUrl: '/hero-image/Product1.png',
+    eyebrow: "NATURE'S FINEST SELECTION",
+    title: 'Gourmet Dehydrated Mushrooms',
+    subtitle: 'Artisan Harvested • Peak Umami • 100% Organic',
+    description: 'Slowly dried at low temperatures to lock in intense aroma, exquisite flavor, and natural nutrients for gourmet cuisine.',
+    ctaText: 'Shop Collection',
+    ctaLink: '/shop',
+    ctaSecondaryText: 'Our Story',
+    ctaSecondaryLink: '/about',
+  },
+  photoConfig: {
+    imageUrl: '/hero-image/Product1.png',
+    eyebrow: '100% ORGANIC HIGHLAND HARVEST',
+    title: 'Pure Artisanal Mushrooms',
+    subtitle: 'Dehydrated & Fresh Gourmet Fungi',
+    description: 'Carefully selected and handcrafted in Sri Lanka. Bringing rich umami, wholesome nutrition, and earthy perfection to every dish.',
+    badgeText: 'Sun-Kissed & Dehydrated',
+    badgeSubtext: 'Sustainably grown in Sri Lanka',
+    ctaText: 'Explore Products',
+    ctaLink: '/shop',
+    ctaSecondaryText: 'Learn More',
+    ctaSecondaryLink: '/about',
+  },
+};
+
 export class CmsService {
+  // Hero Config
+  async getHeroConfig(): Promise<HeroConfig> {
+    const setting = await prisma.setting.findUnique({
+      where: { key: 'cms_hero_config' },
+    });
+    if (!setting || !setting.value) {
+      return DEFAULT_HERO_CONFIG;
+    }
+    try {
+      const parsed = JSON.parse(setting.value);
+      return {
+        ...DEFAULT_HERO_CONFIG,
+        ...parsed,
+        videoConfig: { ...DEFAULT_HERO_CONFIG.videoConfig, ...(parsed.videoConfig || {}) },
+        photoConfig: { ...DEFAULT_HERO_CONFIG.photoConfig, ...(parsed.photoConfig || {}) },
+      };
+    } catch {
+      return DEFAULT_HERO_CONFIG;
+    }
+  }
+
+  async updateHeroConfig(data: Partial<HeroConfig>): Promise<HeroConfig> {
+    const current = await this.getHeroConfig();
+    const updated: HeroConfig = {
+      ...current,
+      ...data,
+      videoConfig: { ...current.videoConfig, ...(data.videoConfig || {}) },
+      photoConfig: { ...current.photoConfig, ...(data.photoConfig || {}) },
+    };
+
+    await prisma.setting.upsert({
+      where: { key: 'cms_hero_config' },
+      update: {
+        value: JSON.stringify(updated),
+        updatedAt: new Date(),
+      },
+      create: {
+        key: 'cms_hero_config',
+        value: JSON.stringify(updated),
+        type: 'json',
+        group: 'cms',
+        description: 'CMS Hero Section Configuration (Slider, Video, Photo)',
+        isPublic: true,
+      },
+    });
+
+    return updated;
+  }
+
   // Hero Slides
   async getHeroSlides() {
     return prisma.heroSlide.findMany({ orderBy: { order: 'asc' } });

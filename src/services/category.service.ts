@@ -10,8 +10,9 @@ export const categoryService = {
   async getCategories() {
     return withCache('categories:all', CACHE_TTL, async () => {
       const categories = await prisma.category.findMany({
+        where: { status: 'Active' },
         select: categoryWithPreviewSelect,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: 'asc' },
       });
 
       return Promise.all(categories.map(async (category) => {

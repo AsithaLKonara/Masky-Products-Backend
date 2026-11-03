@@ -1,6 +1,26 @@
 import { Request, Response } from 'express';
 import { cmsService } from '../services/cms.service';
 
+export const getHeroConfig = async (req: Request, res: Response) => {
+  try {
+    const config = await cmsService.getHeroConfig();
+    res.json(config);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const updateHeroConfig = async (req: Request, res: Response) => {
+  try {
+    const updated = await cmsService.updateHeroConfig(req.body);
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const getHeroSlides = async (req: Request, res: Response) => {
   try {
     const slides = await cmsService.getHeroSlides();

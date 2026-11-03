@@ -5,6 +5,10 @@ import { auditLog } from '../middlewares/audit.middleware';
 
 const router = Router();
 
+// Hero Configuration (Mode: Slider / Video / Photo Split)
+router.get('/hero/config', cmsController.getHeroConfig);
+router.put('/hero/config', authenticateJWT, requirePermission("cms:edit_hero"), auditLog('CmsHeroConfig', 'UPDATE'), cmsController.updateHeroConfig);
+
 // Hero Slides
 router.get('/hero', cmsController.getHeroSlides);
 router.get('/hero/active', cmsController.getActiveHeroSlides);
