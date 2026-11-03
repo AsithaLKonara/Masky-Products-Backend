@@ -273,7 +273,7 @@ export const analyticsService = {
 
   async getPublicStats() {
     const [productCount, categoryCount, orderCount, customerCount, reviews] = await Promise.all([
-      prisma.product.count({ where: { isArchived: false, isActive: true } }).catch(() => 0),
+      prisma.product.count({ where: { status: 'ACTIVE' } }).catch(() => 0),
       prisma.category.count().catch(() => 0),
       prisma.order.count().catch(() => 0),
       prisma.customer.count().catch(() => 0),
