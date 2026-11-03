@@ -18,6 +18,8 @@ const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
 const excludedRoutes = [
   '/api/v1/payments/webhook',
   '/api/v1/inventory/shipping/webhook',
+  '/api/v1/cms/gazette/subscribe',
+  '/api/v1/cms/gazette/unsubscribe',
   ...(process.env.NODE_ENV !== 'production' ? ['/api/v1/auth/login'] : [])
 ];
 

@@ -36,4 +36,12 @@ router.post('/pages', authenticateJWT, requirePermission("cms:edit_static"), aud
 router.put('/pages/:id', authenticateJWT, requirePermission("cms:edit_static"), auditLog('CmsPage', 'UPDATE'), cmsController.updateStaticPage);
 router.delete('/pages/:id', authenticateJWT, requirePermission("cms:edit_static"), auditLog('CmsPage', 'DELETE'), cmsController.deleteStaticPage);
 
+// Private Gazette System
+router.post('/gazette/subscribe', cmsController.subscribeGazette);
+router.post('/gazette/unsubscribe', cmsController.unsubscribeGazette);
+router.get('/gazette/subscribers', authenticateJWT, cmsController.getGazetteSubscribers);
+router.delete('/gazette/subscribers/:id', authenticateJWT, auditLog('GazetteSubscriber', 'DELETE'), cmsController.deleteGazetteSubscriber);
+router.get('/gazette/broadcasts', authenticateJWT, cmsController.getGazetteBroadcasts);
+router.post('/gazette/broadcast', authenticateJWT, auditLog('GazetteBroadcast', 'CREATE'), cmsController.broadcastGazette);
+
 export default router;

@@ -3,6 +3,8 @@ import { FardarService } from './fardar.service';
 import { inventoryService } from './inventory.service';
 import { loyaltyService } from './loyalty.service';
 import { NotificationService } from './notification.service';
+import { SmsService } from './sms.service';
+import { EmailService } from './email.service';
 
 export interface QuickDispatchPayload {
   customer: {
@@ -424,6 +426,38 @@ export const orderService = {
       );
     } catch (e) {
       console.error('Failed to trigger notification:', e);
+    }
+
+    
+    // Send customer dispatch & delivery SMS (Text.lk) / Email (Resend) notifications
+    try {
+      if (status === 'SHIPPED' || status === 'DISPATCHED') {
+        if (order.customer?.phone) {
+          const sms = SmsService.templates.orderDispatched(order.orderNumber, (order as any).trackingNumber, (order as any).carrier);
+          SmsService.sendSms(order.customer.phone, sms).catch(() => {});
+        }
+        if (order.customer?.email) {
+          const emailTpl = EmailService.templates.orderDispatched({
+            orderNumber: order.orderNumber,
+            customerName: `${order.customer.firstName || ''} ${order.customer.lastName || ''}`.trim() || 'Valued Customer',
+            courierName: (order as any).carrier,
+            trackingNumber: (order as any).trackingNumber
+          });
+          EmailService.sendEmail({
+            to: order.customer.email,
+            subject: emailTpl.subject,
+            html: emailTpl.html,
+            text: emailTpl.text
+          }).catch(() => {});
+        }
+      } else if (status === 'DELIVERED') {
+        if (order.customer?.phone) {
+          const sms = SmsService.templates.orderDelivered(order.orderNumber);
+          SmsService.sendSms(order.customer.phone, sms).catch(() => {});
+        }
+      }
+    } catch (e) {
+      console.error('Failed to dispatch status notifications:', e);
     }
 
     return order;

@@ -6,6 +6,8 @@ import { paymentService } from './payment.service';
 import { fraudService } from './fraud.service';
 import { alertService } from './alert.service';
 import { NotificationService } from './notification.service';
+import { SmsService } from './sms.service';
+import { EmailService } from './email.service';
 import { getEffectivePrice } from '../utils/pricing.util';
 import { variantBasicSelect } from '../dto/product.dto';
 
@@ -223,7 +225,7 @@ export const checkoutService = {
     }
 
     // 4. Create Order & Transactions
-    const orderNumber = `LC-${Date.now().toString().slice(-6)}`;
+    const orderNumber = `MP-${Date.now().toString().slice(-6)}`;
     
     const order = await prisma.$transaction(async (tx) => {
       const createdOrder = await tx.order.create({
@@ -329,6 +331,36 @@ export const checkoutService = {
       );
     } catch (e) {
       console.error('Failed to trigger notification:', e);
+    }
+
+    
+    // Trigger Customer SMS (Text.lk) & Email (Resend) Notifications
+    try {
+      if (customer?.phone) {
+        const sms = SmsService.templates.orderConfirmation(order.orderNumber, Number(order.total));
+        SmsService.sendSms(customer.phone, sms).catch((err) => console.error('SMS notification error:', err));
+      }
+      if (customer?.email) {
+        const emailTpl = EmailService.templates.orderConfirmation({
+          orderNumber: order.orderNumber,
+          customerName: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || 'Valued Customer',
+          items: (cart.items || []).map((it: any) => ({
+            name: it.variant?.name || it.variant?.product?.name || 'Mushroom Harvest',
+            quantity: it.quantity,
+            price: Number(it.variant?.price || 0)
+          })),
+          total: Number(order.total),
+          shippingAddress: shippingAddress ? `${shippingAddress.address || ''}, ${shippingAddress.city || ''}` : undefined
+        });
+        EmailService.sendEmail({
+          to: customer.email,
+          subject: emailTpl.subject,
+          html: emailTpl.html,
+          text: emailTpl.text
+        }).catch((err) => console.error('Email notification error:', err));
+      }
+    } catch (e) {
+      console.error('Failed to trigger customer notifications:', e);
     }
 
     return { order, payment: paymentInfo };

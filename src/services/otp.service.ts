@@ -1,13 +1,13 @@
 import { redisClient } from '../config/redis';
 import { logger } from '../utils/logger';
-import { NotificationService } from './notification.service';
+import { SmsService } from './sms.service';
 
 const OTP_EXPIRY_SECONDS = 300; // 5 minutes
 
 export const otpService = {
   /**
    * Generates a 6-digit OTP, stores it in Redis against the phone number,
-   * and sends it via the Send.lk SMS gateway (falls back to mock if API key missing).
+   * and sends it via the Text.lk SMS gateway (falls back to mock if API key missing).
    */
   async sendOtp(phone: string): Promise<void> {
     // Generate a 6-digit OTP
@@ -17,16 +17,14 @@ export const otpService = {
     const redisKey = `otp:${phone}`;
     await redisClient.set(redisKey, otp, 'EX', OTP_EXPIRY_SECONDS);
     
-    const message = `Your Seramaaduwen verification code is: ${otp}. Valid for 5 minutes.`;
+    const message = SmsService.templates.otp(otp);
     
     try {
-      // Use the real SMS gateway if SEND_LK_API_KEY is configured
-      await NotificationService.sendBulkSms([phone], message);
-      logger.info(`[OTP] Sent OTP to ${phone} via Send.lk`);
+      await SmsService.sendSms(phone, message);
+      logger.info(`[OTP] Sent Masky Product OTP to ${phone} via Text.lk`);
     } catch (err) {
-      // Fallback: log to console so development still works
-      logger.warn(`[OTP] Failed to send SMS via gateway, falling back to console mock`, err);
-      console.log(`\n\n=== MOCK SMS ===\nTo: ${phone}\nOTP: ${otp}\n================\n\n`);
+      logger.warn(`[OTP] Failed to send SMS via Text.lk gateway, falling back to mock:`, err);
+      console.log(`\n\n=== MOCK SMS (Text.lk) ===\nTo: ${phone}\nOTP: ${otp}\nMessage: ${message}\n==========================\n\n`);
     }
   },
 

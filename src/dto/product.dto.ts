@@ -60,6 +60,8 @@ export const productBasicSelect = {
   sizeGuideEnabled: true,
   sizeGuideContent: true,
   sizeGuideImageUrl: true,
+  manufactureDate: true,
+  expiryDate: true,
   categoryId: true,
   createdAt: true,
   updatedAt: true,

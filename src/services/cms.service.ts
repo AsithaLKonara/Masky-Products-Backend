@@ -1,5 +1,7 @@
 import prisma from '../config/prisma';
 import { Prisma } from '@prisma/client';
+import { EmailService } from './email.service';
+import { logger } from '../utils/logger';
 
 export interface HeroConfig {
   mode: 'slider' | 'video' | 'photo';
@@ -193,6 +195,183 @@ export class CmsService {
 
   async deleteStaticPage(id: string) {
     return prisma.staticPage.delete({ where: { id } });
+  }
+
+  // ==========================================
+  // Private Gazette System
+  // ==========================================
+
+  async subscribeGazette(email: string, source: string = 'FOOTER') {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      throw new Error('Please provide a valid email address');
+    }
+
+    const existing = await prisma.gazetteSubscriber.findUnique({
+      where: { email: cleanEmail }
+    });
+
+    if (existing && existing.status === 'ACTIVE') {
+      return { subscriber: existing, alreadySubscribed: true };
+    }
+
+    let subscriber;
+    if (existing) {
+      subscriber = await prisma.gazetteSubscriber.update({
+        where: { id: existing.id },
+        data: { status: 'ACTIVE', source, updatedAt: new Date() }
+      });
+    } else {
+      subscriber = await prisma.gazetteSubscriber.create({
+        data: { email: cleanEmail, status: 'ACTIVE', source }
+      });
+    }
+
+    // Send Welcome Email asynchronously
+    try {
+      const template = EmailService.templates.gazetteWelcome(cleanEmail);
+      await EmailService.sendEmail({
+        to: cleanEmail,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+      });
+      logger.info(`[PrivateGazette] Dispatched welcome dispatch to ${cleanEmail}`);
+    } catch (err: any) {
+      logger.warn(`[PrivateGazette] Welcome email dispatch warning: ${err.message}`);
+    }
+
+    return { subscriber, alreadySubscribed: false };
+  }
+
+  async unsubscribeGazette(email: string) {
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = await prisma.gazetteSubscriber.findUnique({
+      where: { email: cleanEmail }
+    });
+    if (!existing) {
+      return { success: false, message: 'Subscriber record not found' };
+    }
+    await prisma.gazetteSubscriber.update({
+      where: { id: existing.id },
+      data: { status: 'UNSUBSCRIBED', updatedAt: new Date() }
+    });
+    return { success: true, message: 'Successfully unsubscribed from the Private Gazette' };
+  }
+
+  async getGazetteSubscribers(params?: { search?: string; status?: string; page?: number; limit?: number }) {
+    const page = Number(params?.page) || 1;
+    const limit = Number(params?.limit) || 50;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (params?.status && params.status !== 'ALL') {
+      where.status = params.status;
+    }
+    if (params?.search) {
+      where.email = { contains: params.search.trim().toLowerCase(), mode: 'insensitive' };
+    }
+
+    const [subscribers, total, activeCount] = await Promise.all([
+      prisma.gazetteSubscriber.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      prisma.gazetteSubscriber.count({ where }),
+      prisma.gazetteSubscriber.count({ where: { status: 'ACTIVE' } }),
+    ]);
+
+    return {
+      subscribers,
+      total,
+      activeCount,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1
+    };
+  }
+
+  async deleteGazetteSubscriber(id: string) {
+    return prisma.gazetteSubscriber.delete({ where: { id } });
+  }
+
+  async getGazetteBroadcasts() {
+    return prisma.gazetteBroadcast.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async broadcastGazette(data: {
+    subject: string;
+    previewText?: string;
+    contentHtml: string;
+    testEmail?: string;
+    sendToAll?: boolean;
+  }) {
+    if (!data.subject || !data.contentHtml) {
+      throw new Error('Subject and content are required for gazette broadcast');
+    }
+
+    const template = EmailService.templates.gazetteBroadcast({
+      subject: data.subject,
+      previewText: data.previewText,
+      contentHtml: data.contentHtml,
+    });
+
+    // 1. If Test Email mode
+    if (data.testEmail) {
+      const cleanTest = data.testEmail.trim().toLowerCase();
+      await EmailService.sendEmail({
+        to: cleanTest,
+        subject: `[TEST PREVIEW] ${data.subject}`,
+        html: template.html,
+        text: template.text,
+      });
+      return { success: true, testMode: true, recipient: cleanTest };
+    }
+
+    // 2. Broadcast to all active subscribers
+    const activeSubscribers = await prisma.gazetteSubscriber.findMany({
+      where: { status: 'ACTIVE' },
+      select: { email: true }
+    });
+
+    const recipientEmails = activeSubscribers.map(s => s.email);
+    let sentSuccess = 0;
+
+    for (const email of recipientEmails) {
+      try {
+        await EmailService.sendEmail({
+          to: email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+        });
+        sentSuccess++;
+      } catch (err: any) {
+        logger.error(`[GazetteBroadcast] Failed sending to ${email}: ${err.message}`);
+      }
+    }
+
+    const record = await prisma.gazetteBroadcast.create({
+      data: {
+        subject: data.subject,
+        previewText: data.previewText,
+        contentHtml: data.contentHtml,
+        sentCount: sentSuccess,
+        status: 'SENT',
+        sentAt: new Date(),
+      }
+    });
+
+    return {
+      success: true,
+      broadcastId: record.id,
+      recipientsCount: recipientEmails.length,
+      sentCount: sentSuccess,
+    };
   }
 }
 

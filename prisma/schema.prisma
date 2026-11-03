@@ -55,6 +55,8 @@ model Product {
   sizeGuideContent  String?
   sizeGuideEnabled  Boolean             @default(false)
   sizeGuideImageUrl String?
+  manufactureDate   DateTime?
+  expiryDate        DateTime?
   status            String              @default("ACTIVE")
   collections       CollectionProduct[]
   category          Category?           @relation(fields: [categoryId], references: [id])
@@ -724,4 +726,25 @@ enum ReviewStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model GazetteSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  status    String   @default("ACTIVE") // ACTIVE, UNSUBSCRIBED
+  source    String   @default("FOOTER") // FOOTER, CHECKOUT, POPUP
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GazetteBroadcast {
+  id          String   @id @default(uuid())
+  subject     String
+  previewText String?
+  contentHtml String
+  sentCount   Int      @default(0)
+  status      String   @default("SENT") // DRAFT, SENT
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

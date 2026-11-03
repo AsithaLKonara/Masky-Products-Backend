@@ -161,6 +161,13 @@ export class ProductService {
 
     // collectionId is on the CollectionProduct join table, not a direct Product scalar
     const { collectionId, ...productData } = data;
+    if ("manufactureDate" in productData) {
+      productData.manufactureDate = productData.manufactureDate ? new Date(productData.manufactureDate) : null;
+    }
+    if ("expiryDate" in productData) {
+      productData.expiryDate = productData.expiryDate ? new Date(productData.expiryDate) : null;
+    }
+
     
     const variantsData = productData.variants?.create || [];
     
@@ -225,6 +232,12 @@ export class ProductService {
 
     // collectionId is on the CollectionProduct join table, not a direct Product scalar - strip it
     const { collectionId, ...productData } = data;
+    if ("manufactureDate" in productData) {
+      productData.manufactureDate = productData.manufactureDate ? new Date(productData.manufactureDate) : null;
+    }
+    if ("expiryDate" in productData) {
+      productData.expiryDate = productData.expiryDate ? new Date(productData.expiryDate) : null;
+    }
 
     if (productData.variants?.create) {
       for (const v of productData.variants.create) {

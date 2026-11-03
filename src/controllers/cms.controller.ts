@@ -213,3 +213,90 @@ export const deleteStaticPage = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// ==========================================
+// Private Gazette System Controllers
+// ==========================================
+
+export const subscribeGazette = async (req: Request, res: Response) => {
+  try {
+    const { email, source } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email address is required' });
+    }
+    const result = await cmsService.subscribeGazette(email, source);
+    res.status(200).json({
+      success: true,
+      message: result.alreadySubscribed
+        ? 'You are already an esteemed member of our Private Gazette.'
+        : 'Welcome to the Masky Private Gazette. Your exclusive membership confirmation has been dispatched.',
+      alreadySubscribed: result.alreadySubscribed,
+      subscriber: result.subscriber,
+    });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Subscription failed' });
+  }
+};
+
+export const unsubscribeGazette = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email address is required' });
+    }
+    const result = await cmsService.unsubscribeGazette(email);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Unsubscribe failed' });
+  }
+};
+
+export const getGazetteSubscribers = async (req: Request, res: Response) => {
+  try {
+    const { page, limit, search, status } = req.query;
+    const result = await cmsService.getGazetteSubscribers({
+      page: page ? Number(page) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      search: search as string,
+      status: status as string,
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch subscribers' });
+  }
+};
+
+export const deleteGazetteSubscriber = async (req: Request, res: Response) => {
+  try {
+    await cmsService.deleteGazetteSubscriber(req.params.id as string);
+    res.status(204).send();
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to delete subscriber' });
+  }
+};
+
+export const getGazetteBroadcasts = async (req: Request, res: Response) => {
+  try {
+    const broadcasts = await cmsService.getGazetteBroadcasts();
+    res.json(broadcasts);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || 'Failed to fetch broadcasts' });
+  }
+};
+
+export const broadcastGazette = async (req: Request, res: Response) => {
+  try {
+    const { subject, previewText, contentHtml, testEmail, sendToAll } = req.body;
+    const result = await cmsService.broadcastGazette({
+      subject,
+      previewText,
+      contentHtml,
+      testEmail,
+      sendToAll,
+    });
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || 'Broadcast failed' });
+  }
+};
+

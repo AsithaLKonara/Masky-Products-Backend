@@ -1,6 +1,7 @@
 import axios from 'axios';
 import webpush from 'web-push';
 import prisma from '../config/prisma';
+import { SmsService } from './sms.service';
 
 // Configure web-push with VAPID keys
 // In production, these should be generated once and stored in .env
@@ -10,52 +11,17 @@ const vapidKeys = {
 };
 
 webpush.setVapidDetails(
-  'mailto:admin@seramaaduwen.lk',
+  'mailto:maskyproduct@gmail.com',
   vapidKeys.publicKey,
   vapidKeys.privateKey
 );
 
 export class NotificationService {
   /**
-   * Send bulk SMS using Send.lk API
+   * Send bulk SMS using Text.lk API v3
    */
   static async sendBulkSms(numbers: string[], message: string, flashSaleId?: string) {
-    const apiKey = process.env.SEND_LK_API_KEY;
-    const senderId = process.env.SEND_LK_SENDER_ID || 'LAURAL';
-
-    if (!apiKey) {
-      console.warn('SEND_LK_API_KEY is missing. Mocking SMS send...');
-      return { success: true, sentCount: numbers.length, failedCount: 0, mocked: true };
-    }
-
-    try {
-      // Assuming typical Send.lk API v3 format
-      // https://sms.send.lk/api/v3/sms/send
-      const response = await axios.post(
-        'https://sms.send.lk/api/v3/sms/send',
-        {
-          recipient: numbers.join(','),
-          sender_id: senderId,
-          message: message,
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      return {
-        success: true,
-        sentCount: numbers.length,
-        failedCount: 0,
-        providerResponse: response.data,
-      };
-    } catch (error: any) {
-      console.error('Failed to send SMS via Send.lk:', error?.response?.data || error.message);
-      throw new Error('Failed to dispatch SMS through gateway');
-    }
+    return SmsService.sendBulkSms(numbers, message);
   }
 
   /**
