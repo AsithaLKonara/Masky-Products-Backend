@@ -25,6 +25,8 @@ router.delete('/banners/:id', authenticateJWT, requirePermission("cms:edit_promo
 
 // Homepage Sections
 router.get('/sections', cmsController.getHomepageSections);
+router.put('/sections/reorder', authenticateJWT, requirePermission("cms:edit_homepage"), auditLog('CmsSection', 'REORDER'), cmsController.reorderHomepageSections);
+router.post('/sections/reset', authenticateJWT, requirePermission("cms:edit_homepage"), auditLog('CmsSection', 'RESET'), cmsController.resetHomepageSections);
 router.post('/sections', authenticateJWT, requirePermission("cms:edit_homepage"), auditLog('CmsSection', 'CREATE'), cmsController.createHomepageSection);
 router.put('/sections/:id', authenticateJWT, requirePermission("cms:edit_homepage"), auditLog('CmsSection', 'UPDATE'), cmsController.updateHomepageSection);
 router.delete('/sections/:id', authenticateJWT, requirePermission("cms:edit_homepage"), auditLog('CmsSection', 'DELETE'), cmsController.deleteHomepageSection);

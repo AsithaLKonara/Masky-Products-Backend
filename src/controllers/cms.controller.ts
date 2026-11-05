@@ -131,6 +131,30 @@ export const getHomepageSections = async (req: Request, res: Response) => {
   }
 };
 
+export const reorderHomepageSections = async (req: Request, res: Response) => {
+  try {
+    const { orders } = req.body;
+    if (!Array.isArray(orders)) {
+      return res.status(400).json({ error: 'orders array is required' });
+    }
+    const result = await cmsService.reorderHomepageSections(orders);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const resetHomepageSections = async (req: Request, res: Response) => {
+  try {
+    const sections = await cmsService.resetHomepageSections();
+    res.json(sections);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const createHomepageSection = async (req: Request, res: Response) => {
   try {
     const section = await cmsService.createHomepageSection(req.body);

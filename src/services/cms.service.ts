@@ -61,6 +61,58 @@ export const DEFAULT_HERO_CONFIG: HeroConfig = {
   },
 };
 
+export const DEFAULT_HOMEPAGE_SECTIONS = [
+  {
+    name: 'CollectionsSection',
+    description: 'Category grid showcasing Fresh, Dehydrated, Ready-to-Eat, and Frozen mushroom selections',
+    visible: true,
+    order: 1,
+    type: 'CATEGORY_GRID',
+  },
+  {
+    name: 'NewArrivalsSection',
+    description: 'Latest small-batch mushroom harvests and seasonal arrivals with direct cart action',
+    visible: true,
+    order: 2,
+    type: 'NEW_ARRIVALS',
+  },
+  {
+    name: 'CuratedCollectionsSection',
+    description: 'Curated gourmet bundles, gift packs, and chef reserves showcase',
+    visible: true,
+    order: 3,
+    type: 'FEATURED_PRODUCTS',
+  },
+  {
+    name: 'OfferCollectionSection',
+    description: 'Promotional product grid with special reserve pricing and limited badges',
+    visible: true,
+    order: 4,
+    type: 'FEATURED_PRODUCTS',
+  },
+  {
+    name: 'AdBannerSection',
+    description: 'High-impact brand banner highlighting sustainable cultivation and farm heritage',
+    visible: true,
+    order: 5,
+    type: 'STATIC',
+  },
+  {
+    name: 'BrandStorySection',
+    description: 'In-depth brand narrative, botanical wellness philosophy, and highland heritage',
+    visible: true,
+    order: 6,
+    type: 'STATIC',
+  },
+  {
+    name: 'TestimonialSection',
+    description: 'Verified customer testimonials, executive chef reviews, and culinary praise',
+    visible: true,
+    order: 7,
+    type: 'STATIC',
+  },
+];
+
 export class CmsService {
   // Hero Config
   async getHeroConfig(): Promise<HeroConfig> {
@@ -158,6 +210,31 @@ export class CmsService {
 
   // Homepage Sections
   async getHomepageSections() {
+    const count = await prisma.homepageSection.count();
+    if (count === 0) {
+      await prisma.homepageSection.createMany({
+        data: DEFAULT_HOMEPAGE_SECTIONS,
+      });
+    }
+    return prisma.homepageSection.findMany({ orderBy: { order: 'asc' } });
+  }
+
+  async reorderHomepageSections(orders: { id: string; order: number }[]) {
+    return prisma.$transaction(
+      orders.map((item) =>
+        prisma.homepageSection.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        })
+      )
+    );
+  }
+
+  async resetHomepageSections() {
+    await prisma.homepageSection.deleteMany({});
+    await prisma.homepageSection.createMany({
+      data: DEFAULT_HOMEPAGE_SECTIONS,
+    });
     return prisma.homepageSection.findMany({ orderBy: { order: 'asc' } });
   }
 
