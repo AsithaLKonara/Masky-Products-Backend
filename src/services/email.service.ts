@@ -67,7 +67,10 @@ export class EmailService {
   }
 
   static getLogoUrl(): string {
-    return `${EmailService.getFrontendUrl()}/logo/VCFB%20VFC.png`;
+    const publicUrl = process.env.FRONTEND_URL?.startsWith('https://')
+      ? process.env.FRONTEND_URL.replace(/\/$/, '')
+      : 'https://masky-products-frontend-production.up.railway.app';
+    return `${publicUrl}/logo/VCFB%20VFC.png`;
   }
 
   /**
