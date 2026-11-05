@@ -2,11 +2,79 @@ import { MediaFile } from "@prisma/client";
 import prisma from '../config/prisma';
 import fs from 'fs/promises';
 import path from 'path';
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
 
 // Define the root uploads directory
 export const UPLOADS_DIR = path.resolve(process.cwd(), process.env.STORAGE_PATH || 'uploads');
 
+const s3Client = new S3Client({
+  endpoint: process.env.AWS_S3_ENDPOINT || 'https://t3.storageapi.dev',
+  region: process.env.AWS_S3_REGION || 'auto',
+  credentials: {
+    accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || 'tid_srOOybLxNHRbsJBXgWsRfXDtndyCQbCCwLHzqLSvBMOXGSZVhy',
+    secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || 'tsec_2788wf4al-LDdNtYjC4QCQLgDSTu8kSuEj_c4a3wIGQUokn2ldFevNfIvY4P2qjtUq2AGS',
+  },
+  forcePathStyle: true,
+});
+
+const S3_BUCKET = process.env.AWS_S3_BUCKET_NAME || 'optimized-snackbox-qc-5cd';
+
 export const mediaService = {
+  /**
+   * Upload file buffer directly to S3
+   */
+  async uploadToS3(key: string, fileBuffer: Buffer, contentType: string): Promise<boolean> {
+    try {
+      await s3Client.send(new PutObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: contentType,
+      }));
+      return true;
+    } catch (err) {
+      console.error(`[S3 Upload Error] Failed to upload ${key} to S3:`, err);
+      return false;
+    }
+  },
+
+  /**
+   * Retrieve file stream from S3
+   */
+  async getFromS3(key: string): Promise<{ stream: Readable; contentType?: string; contentLength?: number } | null> {
+    try {
+      const response = await s3Client.send(new GetObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }));
+      if (response.Body) {
+        return {
+          stream: response.Body as Readable,
+          contentType: response.ContentType,
+          contentLength: response.ContentLength,
+        };
+      }
+      return null;
+    } catch (err: any) {
+      return null;
+    }
+  },
+
+  /**
+   * Delete object from S3
+   */
+  async deleteFromS3(key: string): Promise<void> {
+    try {
+      await s3Client.send(new DeleteObjectCommand({
+        Bucket: S3_BUCKET,
+        Key: key,
+      }));
+    } catch (err) {
+      console.warn(`[S3 Delete Warning] Failed to delete ${key} from S3:`, err);
+    }
+  },
+
   /**
    * Ensure uploads directory exists
    */
@@ -76,6 +144,9 @@ export const mediaService = {
          console.warn("Failed to delete local file, continuing with DB deletion:", error);
       }
     }
+
+    // Attempt to delete from S3
+    await this.deleteFromS3(media.key);
 
     // Delete from DB
     await prisma.mediaFile.delete({ where: { id } });
