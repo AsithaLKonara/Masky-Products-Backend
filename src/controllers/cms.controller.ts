@@ -138,10 +138,10 @@ export const reorderHomepageSections = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'orders array is required' });
     }
     const result = await cmsService.reorderHomepageSections(orders);
-    res.json(result);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('[reorderHomepageSections Error]:', error);
+    res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 };
 

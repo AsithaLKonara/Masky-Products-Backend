@@ -220,14 +220,17 @@ export class CmsService {
   }
 
   async reorderHomepageSections(orders: { id: string; order: number }[]) {
-    return prisma.$transaction(
-      orders.map((item) =>
-        prisma.homepageSection.update({
+    return prisma.$transaction(async (tx) => {
+      const results = [];
+      for (const item of orders) {
+        const updated = await tx.homepageSection.update({
           where: { id: item.id },
           data: { order: item.order },
-        })
-      )
-    );
+        });
+        results.push(updated);
+      }
+      return results;
+    });
   }
 
   async resetHomepageSections() {
