@@ -56,6 +56,20 @@ export class EmailService {
     }
   }
 
+  static getFrontendUrl(): string {
+    if (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost')) {
+      return process.env.FRONTEND_URL.replace(/\/$/, '');
+    }
+    if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT) {
+      return 'https://masky-products-frontend-production.up.railway.app';
+    }
+    return (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+  }
+
+  static getLogoUrl(): string {
+    return `${EmailService.getFrontendUrl()}/logo/VCFB%20VFC.png`;
+  }
+
   /**
    * Masky Product Brand Styled Email Templates (Earth-tone luxury palette)
    */
@@ -70,6 +84,8 @@ export class EmailService {
       total: number;
       shippingAddress?: string;
     }) {
+      const frontendUrl = EmailService.getFrontendUrl();
+      const logoUrl = EmailService.getLogoUrl();
       const itemsHtml = data.items
         .map(
           (item) => `
@@ -97,7 +113,7 @@ export class EmailService {
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FEF6E4; margin: 0; padding: 24px; color: #203C2B; }
             .container { max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; border: 1px solid #DCDCCB; overflow: hidden; box-shadow: 0 4px 20px rgba(32,60,43,0.06); }
             .header { background-color: #203C2B; padding: 36px 32px; text-align: center; }
-            .logo-text { color: #FFFCF4; font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+            .logo-img { display: block; margin: 0 auto 12px auto; max-width: 90px; height: auto; border: 0; }
             .subtitle { color: #DCDCCB; font-size: 12px; margin-top: 6px; letter-spacing: 1px; text-transform: uppercase; }
             .content { padding: 36px 32px; }
             .order-badge { background-color: #FEF6E4; border: 1px solid #DCDCCB; border-radius: 12px; padding: 16px; margin: 24px 0; display: flex; justify-content: space-between; }
@@ -108,7 +124,9 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo-text">Masky Product</h1>
+              <a href="${frontendUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="${logoUrl}" alt="Masky Product" class="logo-img" width="90" />
+              </a>
               <p class="subtitle">Artisan & Pure Organic Mushroom Harvests</p>
             </div>
             <div class="content">
@@ -173,6 +191,8 @@ export class EmailService {
       courierName?: string;
       trackingNumber?: string;
     }) {
+      const frontendUrl = EmailService.getFrontendUrl();
+      const logoUrl = EmailService.getLogoUrl();
       const html = `
         <!DOCTYPE html>
         <html>
@@ -182,7 +202,8 @@ export class EmailService {
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FEF6E4; margin: 0; padding: 24px; color: #203C2B; }
             .container { max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; border: 1px solid #DCDCCB; overflow: hidden; box-shadow: 0 4px 20px rgba(32,60,43,0.06); }
             .header { background-color: #203C2B; padding: 36px 32px; text-align: center; }
-            .logo-text { color: #FFFCF4; font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+            .logo-img { display: block; margin: 0 auto 12px auto; max-width: 90px; height: auto; border: 0; }
+            .subtitle { color: #DCDCCB; font-size: 12px; margin-top: 6px; letter-spacing: 1px; text-transform: uppercase; }
             .content { padding: 36px 32px; }
             .footer { background-color: #FAF9F5; padding: 24px 32px; text-align: center; font-size: 12px; color: #62695A; border-top: 1px solid #DCDCCB; }
           </style>
@@ -190,7 +211,10 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo-text">Masky Product</h1>
+              <a href="${frontendUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="${logoUrl}" alt="Masky Product" class="logo-img" width="90" />
+              </a>
+              <p class="subtitle">Harvest Order Dispatched</p>
             </div>
             <div class="content">
               <h2 style="font-size: 20px; color: #203C2B; margin-top: 0;">Your Harvest Order #${data.orderNumber} is on the way!</h2>
@@ -229,6 +253,8 @@ export class EmailService {
      * Welcome Customer Email
      */
     welcome(data: { customerName: string; email: string }) {
+      const frontendUrl = EmailService.getFrontendUrl();
+      const logoUrl = EmailService.getLogoUrl();
       const html = `
         <!DOCTYPE html>
         <html>
@@ -238,7 +264,7 @@ export class EmailService {
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FEF6E4; margin: 0; padding: 24px; color: #203C2B; }
             .container { max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; border: 1px solid #DCDCCB; overflow: hidden; box-shadow: 0 4px 20px rgba(32,60,43,0.06); }
             .header { background-color: #203C2B; padding: 36px 32px; text-align: center; }
-            .logo-text { color: #FFFCF4; font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
+            .logo-img { display: block; margin: 0 auto 12px auto; max-width: 90px; height: auto; border: 0; }
             .content { padding: 36px 32px; }
             .footer { background-color: #FAF9F5; padding: 24px 32px; text-align: center; font-size: 12px; color: #62695A; border-top: 1px solid #DCDCCB; }
           </style>
@@ -246,7 +272,9 @@ export class EmailService {
         <body>
           <div class="container">
             <div class="header">
-              <h1 class="logo-text">Masky Product</h1>
+              <a href="${frontendUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="${logoUrl}" alt="Masky Product" class="logo-img" width="90" />
+              </a>
             </div>
             <div class="content">
               <h2 style="font-size: 20px; color: #203C2B; margin-top: 0;">Welcome to Pure Living, ${data.customerName}!</h2>
@@ -278,6 +306,8 @@ export class EmailService {
      * Private Gazette Welcome Dispatch
      */
     gazetteWelcome(email: string) {
+      const frontendUrl = EmailService.getFrontendUrl();
+      const logoUrl = EmailService.getLogoUrl();
       const html = `
         <!DOCTYPE html>
         <html>
@@ -287,8 +317,8 @@ export class EmailService {
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FEF6E4; margin: 0; padding: 24px; color: #203C2B; }
             .container { max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 1px solid #DCDCCB; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(32, 60, 43, 0.05); }
             .header { background-color: #203C2B; padding: 40px 32px; text-align: center; }
+            .logo-img { display: block; margin: 0 auto 12px auto; max-width: 90px; height: auto; border: 0; }
             .tagline { color: #A8B995; font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 8px; }
-            .logo-text { color: #FFFCF4; font-size: 26px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
             .content { padding: 40px 32px; }
             .feature-box { background-color: #FAF9F5; border-left: 3px solid #71865B; padding: 16px 20px; border-radius: 0 12px 12px 0; margin: 24px 0; }
             .footer { background-color: #FAF9F5; padding: 24px 32px; text-align: center; font-size: 11px; color: #8F9489; border-top: 1px solid #DCDCCB; }
@@ -298,7 +328,9 @@ export class EmailService {
           <div class="container">
             <div class="header">
               <div class="tagline">The Inner Circle</div>
-              <h1 class="logo-text">Masky Product</h1>
+              <a href="${frontendUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="${logoUrl}" alt="Masky Product" class="logo-img" width="90" />
+              </a>
             </div>
             <div class="content">
               <h2 style="font-size: 22px; color: #203C2B; margin-top: 0; font-weight: 700;">Welcome to the Private Gazette</h2>
@@ -341,6 +373,8 @@ export class EmailService {
      * Private Gazette Broadcast Dispatch
      */
     gazetteBroadcast(data: { subject: string; previewText?: string; contentHtml: string }) {
+      const frontendUrl = EmailService.getFrontendUrl();
+      const logoUrl = EmailService.getLogoUrl();
       const html = `
         <!DOCTYPE html>
         <html>
@@ -350,8 +384,8 @@ export class EmailService {
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #FEF6E4; margin: 0; padding: 24px; color: #203C2B; }
             .container { max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 1px solid #DCDCCB; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 20px rgba(32, 60, 43, 0.05); }
             .header { background-color: #203C2B; padding: 36px 32px; text-align: center; }
+            .logo-img { display: block; margin: 0 auto 12px auto; max-width: 90px; height: auto; border: 0; }
             .tagline { color: #A8B995; font-size: 11px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 6px; }
-            .logo-text { color: #FFFCF4; font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin: 0; }
             .content { padding: 36px 32px; font-size: 14px; line-height: 1.7; color: #555E4E; }
             .footer { background-color: #FAF9F5; padding: 24px 32px; text-align: center; font-size: 11px; color: #8F9489; border-top: 1px solid #DCDCCB; }
           </style>
@@ -360,7 +394,9 @@ export class EmailService {
           <div class="container">
             <div class="header">
               <div class="tagline">Private Gazette Dispatch</div>
-              <h1 class="logo-text">Masky Product</h1>
+              <a href="${frontendUrl}" target="_blank" style="text-decoration: none; display: inline-block;">
+                <img src="${logoUrl}" alt="Masky Product" class="logo-img" width="90" />
+              </a>
             </div>
             <div class="content">
               ${data.contentHtml}
